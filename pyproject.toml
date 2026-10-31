@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel>=0.40.0", "cmake>=3.25.0", "ninja>=1.11.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raft-core-engine"
+version = "0.1.0"
+description = "A production-grade, high-performance Raft consensus core engine."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-benchmark>=4.0.0",
+]
+
+[tool.setuptools]
+packages = ["raft_core_engine"]
+
+[tool.setuptools.package-data]
+raft_core_engine = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+
+[tool.poe.tasks]
+all = ["clean", "build", "test", "benchmark"]
+
+[tool.poe.tasks.build]
+help = "Configure and build the C/C++ core engine extensions with optimizations."
+shell = """
+mkdir -p build && cd build \
+&& cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_FLAGS_RELEASE="-O3 -Wall -Wextra" \
+    -DCMAKE_CXX_FLAGS_RELEASE="-O3 -Wall -Wextra" \
+&& cmake --build . --config Release
+"""
+
+[tool.poe.tasks.test]
+help = "Run the test suite safely, verifying test directories exist."
+shell = """
+if [ -d "tests" ]; then
+    pytest;
+else
+    echo "No 'tests' directory found. Skipping tests.";
+fi
+"""
+
+[tool.poe.tasks.clean]
+help = "Remove build artifacts, caches, and temporary files safely."
+shell = """
+rm -rf build/ dist/ *.egg-info .pytest_cache/ .benchmarks/
+find . -type f -name '*.pyc' -delete
+find . -type d -name '__pycache__' -delete
+"""
+
+[tool.poe.tasks.benchmark]
+help = "Run performance benchmarks safely if benchmark files exist."
+shell = """
+if [ -d "benchmarks" ] || [ -f "benchmarks.py" ]; then
+    pytest --benchmark-only;
+else
+    echo "No benchmarks found. Skipping benchmark target.";
+fi
+"""
